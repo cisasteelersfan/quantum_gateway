@@ -4,7 +4,7 @@ This platform adds support for the Verizon FiOS Quantum Gateway to Home Assistan
 This is a work in progress. The end goal is to create a PyPI package and submit a proper pull request to [Home Assistant](https://github.com/home-assistant/home-assistant).
 
 ## Instructions
-* Clone or unzip into your custom_components directory.
+* Clone or unzip into your custom_components directory. (ie, should have `<config_directory, typically .homeassistant>/custom_components/device_tracker/quantum_gateway.py`)
 * Add to your configuration.yaml:
 ```
 device_tracker:

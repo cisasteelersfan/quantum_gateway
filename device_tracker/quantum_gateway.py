@@ -21,7 +21,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
 
 
 def get_scanner(hass, config):
-    scanner = QuantumGatewayDeviceScanner(config)
+    scanner = QuantumGatewayDeviceScanner(config[DOMAIN])
 
     return scanner if scanner.success_init else None
 
