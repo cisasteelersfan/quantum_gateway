@@ -27,6 +27,6 @@ I have only tested on my own Verizon FiOS-provided gateway:
 | Model Name: | FiOS-G1100 |
 | Hardware Version: | 1.03 |
 
-Please open a Github issue if you encounter any problems. Thanks!
+Please open a Github issue or reply to the [forum post](https://community.home-assistant.io/t/verizon-fios-quantum-gateway-device-tracker-platform/67944) if you encounter any problems. Thanks!
 
 ![Example FiOS Gateway](https://cdn.arstechnica.net/wp-content/uploads/2016/07/fios-quantum-gateway.png)
