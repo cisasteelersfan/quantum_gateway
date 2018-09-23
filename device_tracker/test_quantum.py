@@ -28,6 +28,14 @@ class TestQuantum(unittest.TestCase):
 
         self.assertTrue(self.quantum.success_init)
 
+    def test_login_fail(self, m):
+        self.setup_matcher(m)
+
+        host = '192.100.100.5'
+        password = self.WRONG_PASSWORD
+        self.quantum = Quantum(host, password)
+
+        self.assertFalse(self.quantum.success_init)
 
     def setup_matcher(self, m):
         def devices_callback(request, context):
