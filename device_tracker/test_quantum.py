@@ -13,6 +13,8 @@ class TestQuantum(unittest.TestCase):
     PASSWORD_SALT = 'TEST_SALT'
     CORRECT_PASSWORD = 'correct'
     WRONG_PASSWORD = 'wrong'
+    CONNECTED_DEVICES = {'00:11:22:33:44:55': 'iphone', '00:00:00:00:00:00': 'computer'}
+    SERVER_CONNECTED_DEVICES_RESPONSE = '[{"mac": "00:11:22:33:44:55", "name": "iphone", "status": true}, {"mac": "00:00:00:00:00:00", "name": "computer", "status": true}, {"mac": "11:11:11:11:11:11", "name": "disconnected", "status": false}]'
 
     logged_in = False
 
@@ -24,23 +26,37 @@ class TestQuantum(unittest.TestCase):
 
         host = '192.168.1.2'
         password = self.CORRECT_PASSWORD
-        self.quantum = Quantum(host, password)
+        quantum = Quantum(host, password)
 
-        self.assertTrue(self.quantum.success_init)
+        self.assertTrue(quantum.success_init)
 
     def test_login_fail(self, m):
         self.setup_matcher(m)
 
         host = '192.100.100.5'
         password = self.WRONG_PASSWORD
-        self.quantum = Quantum(host, password)
+        quantum = Quantum(host, password)
 
-        self.assertFalse(self.quantum.success_init)
+        self.assertFalse(quantum.success_init)
+
+    def test_scan_devices(self, m):
+        self.setup_matcher(m)
+
+        host = 'mywifigateway.com'
+        password = self.CORRECT_PASSWORD
+
+        quantum = Quantum(host, password)
+
+        devices = quantum.scan_devices()
+
+        self.assertEqual(devices, self.CONNECTED_DEVICES.keys())
+
 
     def setup_matcher(self, m):
         def devices_callback(request, context):
             if self.is_logged_in(request):
                 context.status_code = 200
+                return self.SERVER_CONNECTED_DEVICES_RESPONSE
             else:
                 context.status_code = 401
 

@@ -82,15 +82,25 @@ class Quantum():
     def __init__(self, host, password):
         self.host = 'http://' + host
         self.password = password
+        self.connected_devices = {}
 
         self.session = requests.Session()
 
         self.success_init = self._check_auth()
 
     def scan_devices(self):
-        pass
+        self.connected_devices = {}
+        if self._check_auth():
+            self._get_connected_devices()
+            return self.connected_devices.keys()
+
     def get_device_name(self, device):
         pass
+
+    def _get_connected_devices(self):
+        devices_raw = self.session.get(self.host + '/api/devices')
+        devices = json.loads(devices_raw.text)
+        self.connected_devices = {device['mac']: device['name'] for device in devices if device['status']}
 
     def _check_auth(self):
         res = self.session.get(self.host + '/api/devices')
