@@ -51,6 +51,18 @@ class TestQuantum(unittest.TestCase):
 
         self.assertEqual(devices, self.CONNECTED_DEVICES.keys())
 
+    def test_get_device_name(self, m):
+        self.setup_matcher(m)
+
+        host = '10.0.0.1'
+        password = self.CORRECT_PASSWORD
+
+        quantum = Quantum(host, password)
+
+        quantum.scan_devices()
+
+        self.assertEqual(self.CONNECTED_DEVICES.get('00:00:00:00:00:00'), quantum.get_device_name('00:00:00:00:00:00'))
+
 
     def setup_matcher(self, m):
         def devices_callback(request, context):

@@ -95,7 +95,7 @@ class Quantum():
             return self.connected_devices.keys()
 
     def get_device_name(self, device):
-        pass
+        return self.connected_devices.get(device)
 
     def _get_connected_devices(self):
         devices_raw = self.session.get(self.host + '/api/devices')
