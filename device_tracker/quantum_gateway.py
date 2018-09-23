@@ -115,5 +115,6 @@ class Quantum():
             return True
         return False
 
-    def log_out(self):
+    def _log_out(self):
         self.session.get(self.host + '/api/logout')
+        self.session.close()
