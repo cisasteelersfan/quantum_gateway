@@ -3,7 +3,7 @@ import json
 import hashlib
 import requests_mock
 import re
-from quantum_gateway import Quantum
+from Quantum import Quantum
 
 @requests_mock.Mocker()
 class TestQuantum(unittest.TestCase):
