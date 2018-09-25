@@ -5,7 +5,7 @@ from http.cookies import SimpleCookie
 import json
 import requests
 import voluptuous as vol
-from Quantum import Quantum
+from .Quantum import Quantum
 
 from homeassistant.components.device_tracker import (DOMAIN, PLATFORM_SCHEMA,
                                                      DeviceScanner)
