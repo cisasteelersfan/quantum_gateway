@@ -3,6 +3,6 @@ python:
   - "3.6"
 install:
   - pip install pipenv
-  - pipenv install
+  - pipenv install --dev
 script:
   - python tests/test_basic.py
