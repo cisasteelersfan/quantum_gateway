@@ -38,6 +38,9 @@ class QuantumGatewayDeviceScanner(DeviceScanner):
 
         self.success_init = self.quantum.success_init
 
+        if not self.success_init:
+            _LOGGER.error("Unable to login to gateway. Check password and host.")
+
     def scan_devices(self):
         return self.quantum.scan_devices()
 
