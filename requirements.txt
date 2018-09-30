@@ -1,1 +1,1 @@
-requests_mock
+requests>2.0
