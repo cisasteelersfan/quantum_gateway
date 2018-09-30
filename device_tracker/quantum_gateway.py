@@ -5,6 +5,7 @@ from http.cookies import SimpleCookie
 import json
 import requests
 import voluptuous as vol
+from .Quantum import Quantum
 
 from homeassistant.components.device_tracker import (DOMAIN, PLATFORM_SCHEMA,
                                                      DeviceScanner)
@@ -29,51 +30,19 @@ def get_scanner(hass, config):
 class QuantumGatewayDeviceScanner(DeviceScanner):
 
     def __init__(self, config):
-        self.host = 'http://' + config[CONF_HOST]
+        self.host = config[CONF_HOST]
         self.password = config[CONF_PASSWORD]
-
-        self.last_results = []
-
         _LOGGER.info("Initializing")
 
-        self._update_info()
+        self.quantum = Quantum(self.host, self.password)
 
-        self.success_init = True
+        self.success_init = self.quantum.success_init
+
+        if not self.success_init:
+            _LOGGER.error("Unable to login to gateway. Check password and host.")
 
     def scan_devices(self):
-        self._update_info()
-
-        macs = [device['mac'] for device in self.last_results]
-
-        return macs
+        return self.quantum.scan_devices()
 
     def get_device_name(self, device):
-        try:
-            return next(entry['name'] for entry in self.last_results
-                        if entry['mac'] == device)
-        except StopIteration:
-            return None
-
-    def _update_info(self):
-        self.last_results = []
-
-        with requests.Session() as session:
-            getLogin = session.get(self.host + '/api/login')
-            salt = getLogin.json()['passwordSalt']
-
-            encodedPassword = hashlib.sha512()
-            encodedPassword.update((self.password + salt).encode('ascii'))
-
-            payload = json.dumps({"password": encodedPassword.hexdigest()})
-
-            postLogin = session.post(self.host + '/api/login', data=payload)
-            token = SimpleCookie(postLogin.headers.get('set-cookie'))['XSRF-TOKEN'].value
-
-            session.headers.update({'X-XSRF-TOKEN': token})
-
-            devicesRes = session.get(self.host + '/api/devices')
-            devices = json.loads(devicesRes.text)
-
-            session.get(self.host + '/api/logout')
-
-            self.last_results = [{'mac': device['mac'], 'name': device['name']} for device in devices if device['status']]
+        return self.quantum.get_device_name(device)
