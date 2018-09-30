@@ -8,12 +8,12 @@ with open('requirements.txt', 'r') as fh:
 
 setup(
     name='quantum_gateway',
-    version='0.0.1',
+    version='0.0.2',
     author='Colby Rome',
     author_email='colbyrome@gmail.com',
     description='Query a Quantum Gateway',
     py_modules=['quantum_gateway'],
-    install_requires='requirements',
+    install_requires=requirements,
     package_dir={'': 'src'},
     url='https://github.com/cisasteelersfan/quantum_gateway',
     long_description=long_description,
