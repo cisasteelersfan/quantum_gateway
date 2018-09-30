@@ -3,7 +3,6 @@ import json
 import hashlib
 import requests_mock
 import re
-from context import quantum_gateway
 from quantum_gateway import QuantumGatewayScanner
 
 @requests_mock.Mocker()

@@ -2,6 +2,7 @@ language: python
 python:
   - "3.6"
 install:
-  - pip install -e .
+  - pip install pipenv
+  - pipenv install
 script:
   - python tests/test_basic.py
