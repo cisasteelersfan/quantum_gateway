@@ -3,7 +3,7 @@ import json
 import hashlib
 import requests_mock
 import re
-from Quantum import Quantum
+from quantum_gateway import QuantumGatewayScanner
 
 @requests_mock.Mocker()
 class TestQuantum(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestQuantum(unittest.TestCase):
 
         host = '192.168.1.2'
         password = self.CORRECT_PASSWORD
-        quantum = Quantum(host, password)
+        quantum = QuantumGatewayScanner(host, password)
 
         self.assertTrue(quantum.success_init)
 
@@ -35,7 +35,7 @@ class TestQuantum(unittest.TestCase):
 
         host = '192.100.100.5'
         password = self.WRONG_PASSWORD
-        quantum = Quantum(host, password)
+        quantum = QuantumGatewayScanner(host, password)
 
         self.assertFalse(quantum.success_init)
 
@@ -45,7 +45,7 @@ class TestQuantum(unittest.TestCase):
         host = 'mywifigateway.com'
         password = self.CORRECT_PASSWORD
 
-        quantum = Quantum(host, password)
+        quantum = QuantumGatewayScanner(host, password)
 
         devices = quantum.scan_devices()
 
@@ -57,7 +57,7 @@ class TestQuantum(unittest.TestCase):
         host = '10.0.0.1'
         password = self.CORRECT_PASSWORD
 
-        quantum = Quantum(host, password)
+        quantum = QuantumGatewayScanner(host, password)
 
         quantum.scan_devices()
 

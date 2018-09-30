@@ -3,7 +3,7 @@ import json
 import requests
 from http.cookies import SimpleCookie
 
-class Quantum():
+class QuantumGatewayScanner():
     def __init__(self, host, password):
         self.host = 'http://' + host
         self.password = password

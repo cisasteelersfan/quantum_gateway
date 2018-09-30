@@ -2,6 +2,7 @@ language: python
 python:
   - "3.6"
 install:
-  - pip install -r requirements.txt
+  - pip install pipenv
+  - pipenv install --dev
 script:
-  - python device_tracker/test_quantum.py
+  - python tests/test_basic.py
