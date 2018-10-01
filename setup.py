@@ -8,7 +8,7 @@ with open('requirements.txt', 'r') as fh:
 
 setup(
     name='quantum_gateway',
-    version='0.0.2',
+    version='0.0.3',
     author='Colby Rome',
     author_email='colbyrome@gmail.com',
     description='Query a Quantum Gateway',
