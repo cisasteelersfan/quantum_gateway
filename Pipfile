@@ -10,4 +10,4 @@ quantum-gateway = {editable = true, path = "."}
 requests-mock = ">=1.5"
 
 [requires]
-python_version = "3.6"
+python_version = "3"
