@@ -6,27 +6,30 @@ This library allows a Verizon FiOS Quantum Gateway to be queried. It uses the `r
 
 Please note as of the Firmware version 02.02.00.13 and UI version v1.0.388 https is the only way to get to the admin console. This is using a self signed cert as well. This code now defaults to https and ignores the self signed cert warning. 
 
+## Import
+```python
 from quantum_gateway import QuantumGatewayScanner
+```
 
-# Connect to gateway via HTTP
+## Connect to gateway via HTTPS
 ```python
 gateway = QuantumGatewayScanner('192.168.1.1', 'your_password_here')
 ``` 
 
-# Connect to gateway via HTTP
+## Connect to gateway via HTTP
 ```python 
 gateway = QuantumGatewayScanner('192.168.1.1', 'your_password_here',False)
 ``` 
 
-# Ensure successful connection
+## Ensure successful connection
 ```python
 gateway.success_init
 ```
-# Get list of all connected devices' MAC addresses
+## Get list of all connected devices' MAC addresses
 ```python
 gateway.scan_devices()
 ```
-# Get specific device's name
+## Get specific device's name
 ```python
 gateway.get_device_name('mac address of device here')
 ```
