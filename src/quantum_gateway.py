@@ -9,11 +9,10 @@ TIMEOUT = 5
 
 
 class QuantumGatewayScanner:
-    def __init__(self, host, password, is_https=True):
+    def __init__(self, host, password, use_https=True):
 
-        self.verify = False
-
-        if is_https:
+        self.verify = use_https
+        if use_https:
             self.scheme = 'https'
             urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         else:
