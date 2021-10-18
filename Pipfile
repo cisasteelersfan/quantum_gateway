@@ -4,10 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-quantum-gateway = {editable = true, path = "."}
+requests = ">=2.20"
+esprima = ">=4.0"
 
 [dev-packages]
 requests-mock = ">=1.5"
 
 [requires]
 python_version = "3"
+
+[dev-packages.quantum-gateway]
+editable = true
+path = "."
