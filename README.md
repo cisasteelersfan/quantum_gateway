@@ -4,7 +4,7 @@ This library allows a Verizon FiOS Quantum Gateway to be queried. It uses the `r
 
 ## Usage
 
-Please note as of the Firmware version 02.02.00.13 and UI version v1.0.388 https is the only way to get to the admin console. This is using a self signed cert as well. The code now defaults to https and ignores the self signed cert warning.
+Please note for G1100 devices: as of the Firmware version 02.02.00.13 and UI version v1.0.388 https is the only way to get to the admin console. This is using a self signed cert as well. The code now defaults to https and ignores the self signed cert warning.
 
 ```python
 # Import
@@ -30,11 +30,11 @@ gateway.get_device_name('mac address of device here')
 
 Tested on Verizon FiOS-provided gateway:
 
-|                   |             |
-| ----------------- | ----------- |
-| UI Version:       | v1.0.388    |
-| Firmware Version: | 02.02.00.13 |
-| Model Name:       | FiOS-G1100  |
-| Hardware Version: | 1.03        |
+|                   |             |            |
+| ----------------- | ----------- |------------|
+| UI Version:       | v1.0.388    | Unknown    |
+| Firmware Version: | 02.02.00.13 | 3.1.0.12   |
+| Model Name:       | FiOS-G1100  | FiOS-G3100 |
+| Hardware Version: | 1.03        | 1104       |
 
 Please open a Github [issue](https://github.com/cisasteelersfan/quantum_gateway/issues) or reply to the Home Assistant forum [post](https://community.home-assistant.io/t/verizon-fios-quantum-gateway-device-tracker-platform/67944) if you encounter any problems. Thanks!
