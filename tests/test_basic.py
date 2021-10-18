@@ -1,12 +1,63 @@
+from http import HTTPStatus
 import unittest
+from unittest import mock
 import json
 import hashlib
+
+from requests import status_codes
+import requests
+from requests.api import request
 import requests_mock
 import re
-from quantum_gateway import QuantumGatewayScanner
+
+from quantum_gateway import Gateway, Gateway1100, QuantumGatewayScanner
+
+
+class TestScanner(unittest.TestCase):
+
+    def test_successful_init(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = True
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            self.assertTrue(scanner.success_init)
+
+    def test_failed_init(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = False
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            mock_gateway.check_auth.assert_called_once()
+            self.assertFalse(scanner.success_init)
+
+    def test_get_connected_devices(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = True
+            mock_gateway.get_connected_devices.return_value = {"mac_address": "hostname"}
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            self.assertCountEqual(scanner.scan_devices(), ["mac_address"])
+
+    def test_get_device_name(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = True
+            mock_gateway.get_connected_devices.return_value = {"mac_address": "hostname"}
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            scanner.scan_devices()
+            self.assertEqual(scanner.get_device_name("mac_address"), "hostname")
+
 
 @requests_mock.Mocker()
-class TestQuantum(unittest.TestCase):
+class TestGateway1100(unittest.TestCase):
     DEVICES_MATCHER = re.compile('^.*/api/devices$')
     LOGIN_MATCHER = re.compile('^.*/api/login$')
     TOKEN = 'TEST_TOKEN'
@@ -26,43 +77,29 @@ class TestQuantum(unittest.TestCase):
 
         host = '192.168.1.2'
         password = self.CORRECT_PASSWORD
-        quantum = QuantumGatewayScanner(host, password)
+        gateway = Gateway1100(host, password)
 
-        self.assertTrue(quantum.success_init)
+        self.assertTrue(gateway.check_auth())
 
     def test_login_fail(self, m):
         self.setup_matcher(m)
 
         host = '192.100.100.5'
         password = self.WRONG_PASSWORD
-        quantum = QuantumGatewayScanner(host, password)
+        gateway = Gateway1100(host, password)
 
-        self.assertFalse(quantum.success_init)
+        self.assertFalse(gateway.check_auth())
 
-    def test_scan_devices(self, m):
+    def test_get_connected_devices(self, m):
         self.setup_matcher(m)
 
         host = 'mywifigateway.com'
         password = self.CORRECT_PASSWORD
 
-        quantum = QuantumGatewayScanner(host, password)
+        gateway = Gateway1100(host, password)
 
-        devices = quantum.scan_devices()
-
-        self.assertEqual(devices, self.CONNECTED_DEVICES.keys())
-
-    def test_get_device_name(self, m):
-        self.setup_matcher(m)
-
-        host = '10.0.0.1'
-        password = self.CORRECT_PASSWORD
-
-        quantum = QuantumGatewayScanner(host, password)
-
-        quantum.scan_devices()
-
-        self.assertEqual(self.CONNECTED_DEVICES.get('00:00:00:00:00:00'), quantum.get_device_name('00:00:00:00:00:00'))
-
+        gateway.check_auth()
+        self.assertEqual(gateway.get_connected_devices(), self.CONNECTED_DEVICES)
 
     def setup_matcher(self, m):
         def devices_callback(request, context):
