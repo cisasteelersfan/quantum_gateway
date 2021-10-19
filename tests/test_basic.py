@@ -1,12 +1,79 @@
+from http import HTTPStatus
 import unittest
+from unittest import mock
 import json
 import hashlib
+
+from requests import status_codes
+import requests
+from requests.api import request
 import requests_mock
 import re
-from quantum_gateway import QuantumGatewayScanner
+
+from quantum_gateway import Gateway, Gateway1100, Gateway3100, QuantumGatewayScanner
+
+G3100_LOGIN_STATUS_MATCHER = re.compile('^.*/loginStatus.cgi$')
+
+
+class TestScanner(unittest.TestCase):
+
+    @requests_mock.Mocker()
+    def test_detects_g3100(self, m):
+        m.get(G3100_LOGIN_STATUS_MATCHER)
+        with mock.patch('quantum_gateway.Gateway3100') as MockGateway3100:
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            MockGateway3100.assert_called_once_with("192.168.1.1", "password")
+
+    @requests_mock.Mocker()
+    def test_defaults_to_g1100(self, m):
+        m.get(G3100_LOGIN_STATUS_MATCHER, status_code=HTTPStatus.NOT_FOUND)
+        with mock.patch('quantum_gateway.Gateway1100') as MockGateway1100:
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            MockGateway1100.assert_called_once_with("192.168.1.1", "password", True)
+
+    def test_successful_init(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = True
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            self.assertTrue(scanner.success_init)
+
+    def test_failed_init(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = False
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            mock_gateway.check_auth.assert_called_once()
+            self.assertFalse(scanner.success_init)
+
+    def test_get_connected_devices(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = True
+            mock_gateway.get_connected_devices.return_value = {"mac_address": "hostname"}
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            self.assertCountEqual(scanner.scan_devices(), ["mac_address"])
+
+    def test_get_device_name(self):
+        with mock.patch.object(QuantumGatewayScanner, "_get_gateway") as mock_get_gateway:
+            mock_gateway = mock.create_autospec(Gateway)
+            mock_gateway.check_auth.return_value = True
+            mock_gateway.get_connected_devices.return_value = {"mac_address": "hostname"}
+            mock_get_gateway.return_value = mock_gateway
+
+            scanner = QuantumGatewayScanner("192.168.1.1", "password")
+            scanner.scan_devices()
+            self.assertEqual(scanner.get_device_name("mac_address"), "hostname")
+
 
 @requests_mock.Mocker()
-class TestQuantum(unittest.TestCase):
+class TestGateway1100(unittest.TestCase):
     DEVICES_MATCHER = re.compile('^.*/api/devices$')
     LOGIN_MATCHER = re.compile('^.*/api/login$')
     TOKEN = 'TEST_TOKEN'
@@ -26,43 +93,29 @@ class TestQuantum(unittest.TestCase):
 
         host = '192.168.1.2'
         password = self.CORRECT_PASSWORD
-        quantum = QuantumGatewayScanner(host, password)
+        gateway = Gateway1100(host, password)
 
-        self.assertTrue(quantum.success_init)
+        self.assertTrue(gateway.check_auth())
 
     def test_login_fail(self, m):
         self.setup_matcher(m)
 
         host = '192.100.100.5'
         password = self.WRONG_PASSWORD
-        quantum = QuantumGatewayScanner(host, password)
+        gateway = Gateway1100(host, password)
 
-        self.assertFalse(quantum.success_init)
+        self.assertFalse(gateway.check_auth())
 
-    def test_scan_devices(self, m):
+    def test_get_connected_devices(self, m):
         self.setup_matcher(m)
 
         host = 'mywifigateway.com'
         password = self.CORRECT_PASSWORD
 
-        quantum = QuantumGatewayScanner(host, password)
+        gateway = Gateway1100(host, password)
 
-        devices = quantum.scan_devices()
-
-        self.assertEqual(devices, self.CONNECTED_DEVICES.keys())
-
-    def test_get_device_name(self, m):
-        self.setup_matcher(m)
-
-        host = '10.0.0.1'
-        password = self.CORRECT_PASSWORD
-
-        quantum = QuantumGatewayScanner(host, password)
-
-        quantum.scan_devices()
-
-        self.assertEqual(self.CONNECTED_DEVICES.get('00:00:00:00:00:00'), quantum.get_device_name('00:00:00:00:00:00'))
-
+        gateway.check_auth()
+        self.assertEqual(gateway.get_connected_devices(), self.CONNECTED_DEVICES)
 
     def setup_matcher(self, m):
         def devices_callback(request, context):
@@ -94,6 +147,66 @@ class TestQuantum(unittest.TestCase):
         actual_encoded_password = json.loads(request.body)['password']
 
         return actual_encoded_password == expected_encoded_password
+
+@requests_mock.Mocker()
+class TestGateway3100(unittest.TestCase):
+
+    LOGIN_MATCHER = re.compile('^.*/login.cgi$')
+    DEVICE_INFO_MATCHER = re.compile('^.*/cgi_owl.js$')
+    LOGOUT_MATCHER = re.compile('^.*/logout.cgi$')
+
+    LOGGED_OUT_STATUS_JSON = {"islogin": "0"}
+    LOGGED_IN_STATUS_JSON = {"islogin": "1", "token": "token_value"}
+
+    def setUp(self):
+        self.host = "192.168.23.16"
+        self.password = "password"
+
+    def test_login_success(self, m):
+        self._match_successful_login(m)
+        self._match_logout(m)
+
+        gateway = Gateway3100(self.host, self.password)
+
+        self.assertTrue(gateway.check_auth())
+
+    def test_login_fail(self, m):
+        m.get(G3100_LOGIN_STATUS_MATCHER, json=self.LOGGED_OUT_STATUS_JSON)
+        m.post(self.LOGIN_MATCHER, status_code=HTTPStatus.FORBIDDEN, json={})
+        self._match_logout(m)
+
+        gateway = Gateway3100(self.host, self.password)
+
+        self.assertFalse(gateway.check_auth())
+
+    def test_get_connected_devices(self, m):
+        device_info_response_text = """
+        addROD("known_device_list", { "known_devices": [
+            { "mac": "xx:xx:xx:xx:xx:xx", "hostname": "active_device", "activity": 1 },
+            { "mac": "xx:xx:xx:xx:xx:ab", "hostname": "inactive_device", "activity": 0 }
+        ] });
+        """
+
+        self._match_successful_login(m)
+        m.get(self.DEVICE_INFO_MATCHER, text=device_info_response_text)
+        self._match_logout(m)
+
+        gateway = Gateway3100(self.host, self.password)
+
+        self.assertCountEqual(gateway.get_connected_devices(), {"xx:xx:xx:xx:xx:xx": "hostname"})
+
+    def _match_successful_login(self, m):
+        m.get(G3100_LOGIN_STATUS_MATCHER, json=self.LOGGED_OUT_STATUS_JSON)
+        def check_login_data(request, context):
+            self.assertEqual(request.data, {
+                "luci_username": "",
+                "luci_password": "",
+            })
+        m.post(self.LOGIN_MATCHER, text=check_login_data)
+        m.get(G3100_LOGIN_STATUS_MATCHER, json=self.LOGGED_IN_STATUS_JSON)
+
+    def _match_logout(self, m):
+        m.post(self.LOGOUT_MATCHER)
 
 if __name__ == '__main__':
     unittest.main()
