@@ -163,7 +163,10 @@ class Gateway3100(Gateway):
                 if data['activity'] == 1:
                     connected_devices[data['mac']] = data['hostname']
 
-        esprima.parseScript(res.text, {}, visitor)
+        lines = res.text.split("\n")
+        for line in lines:
+            if "known_device_list" in line:
+                esprima.parseScript(line, {}, visitor)
 
         return connected_devices
 
