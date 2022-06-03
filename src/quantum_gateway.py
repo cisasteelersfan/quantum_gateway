@@ -20,6 +20,11 @@ def _encode_luci_string(unencoded_string):
     """Encodes a string to be sent to a G3100 gateway in a "luci_" POST parameter."""
     md5_hash = hashlib.md5(unencoded_string.encode('ascii')).hexdigest()
     return hashlib.sha512(md5_hash.encode('ascii')).hexdigest()
+def _encode_luci_password(unencoded_string, token):
+    """Encodes a string to be sent to a G3100 gateway in a "luci_" POST parameter."""
+    md5_hash = hashlib.md5(unencoded_string.encode('ascii')).hexdigest()
+    sha_hash = hashlib.sha512(md5_hash.encode('ascii')).hexdigest()
+    return hashlib.sha512((token + sha_hash).encode('ascii')).hexdigest()
 
 
 class Gateway(ABC):
@@ -174,16 +179,15 @@ class Gateway3100(Gateway):
         res = self.session.get(
             self.host + '/loginStatus.cgi', timeout=TIMEOUT, verify=self.verify
         )
-        if res.status_code == HTTPStatus.OK and res.json()['islogin'] == '1':
-            # Store the XSRF token for use in future requests.
-            self.token = res.json()['token']
-            return True
+        if res.status_code == HTTPStatus.OK:
+            self.loginToken = res.json()['loginToken']
+            if res.json()['islogin'] == '1':
+                # Store the XSRF token for use in future requests.
+                self.token = res.json()['token']
+                return True
         return False
 
-    def check_auth(self):
-        if self._check_login_status():
-            return True
-
+    def _attempt_old_login(self):
         body = {
             'luci_username': _encode_luci_string(self.username),
             'luci_password': _encode_luci_string(self.password),
@@ -192,6 +196,20 @@ class Gateway3100(Gateway):
             self.host + '/login.cgi', timeout=TIMEOUT, verify=self.verify, data=body
         )
 
+        return self._check_login_success(res)
+
+    def _attempt_new_login(self):
+        body = {
+            'luci_username': _encode_luci_string(self.username),
+            'luci_password': _encode_luci_password(self.password, self.loginToken),
+            'luci_token': self.loginToken
+        }
+        res = self.session.post(
+            self.host + '/login.cgi', timeout=TIMEOUT, verify=self.verify, data=body
+        )
+        return self._check_login_success(res)
+
+    def _check_login_success(self, res):
         if res.status_code in (HTTPStatus.OK, HTTPStatus.FOUND):
             return self._check_login_status()
 
@@ -200,10 +218,18 @@ class Gateway3100(Gateway):
             if response_json.get('flag') == 2:
                 _LOGGER.warning('Hit maximum session limit of %s sessions',
                                 response_json['maxsession'])
+        
         else:
             _LOGGER.debug('unexpected response code: %s', res.status_code)
 
-        return False
+    def check_auth(self):
+        if self._check_login_status():
+            return True
+
+        if self._attempt_old_login():
+            return True
+
+        return self._attempt_new_login()
 
 
 class QuantumGatewayScanner:
