@@ -30,11 +30,11 @@ gateway.get_device_name('mac address of device here')
 
 Tested on Verizon FiOS-provided gateway:
 
-|                   |             |            |
-| ----------------- | ----------- |------------|
-| UI Version:       | v1.0.388    | Unknown    |
-| Firmware Version: | 02.02.00.13 | 3.1.0.12   |
-| Model Name:       | FiOS-G1100  | FiOS-G3100 |
-| Hardware Version: | 1.03        | 1104       |
+|                   |             |            |            |
+| ----------------- | ----------- |------------|------------|
+| UI Version:       | v1.0.388    | Unknown    | Unknown    |
+| Firmware Version: | 02.02.00.13 | 3.1.0.12   | 3.1.1.17   |
+| Model Name:       | FiOS-G1100  | FiOS-G3100 | FiOS-G3100 |
+| Hardware Version: | 1.03        | 1104       | 1104       |
 
 Please open a Github [issue](https://github.com/cisasteelersfan/quantum_gateway/issues) or reply to the Home Assistant forum [post](https://community.home-assistant.io/t/verizon-fios-quantum-gateway-device-tracker-platform/67944) if you encounter any problems. Thanks!
