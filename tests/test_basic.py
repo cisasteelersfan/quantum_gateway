@@ -155,8 +155,12 @@ class TestGateway3100(unittest.TestCase):
     DEVICE_INFO_MATCHER = re.compile('^.*/cgi_owl.js$')
     LOGOUT_MATCHER = re.compile('^.*/logout.cgi$')
 
-    LOGGED_OUT_STATUS_JSON = {"islogin": "0"}
-    LOGGED_IN_STATUS_JSON = {"islogin": "1", "token": "token_value"}
+    LOGGED_OUT_STATUS_JSON = {"islogin": "0", "loginToken": ""}
+    LOGGED_IN_STATUS_JSON = {
+        "islogin": "1",
+        "token": "token_value",
+        "loginToken": "login_token"
+    }
 
     def setUp(self):
         self.host = "192.168.23.16"
@@ -181,10 +185,7 @@ class TestGateway3100(unittest.TestCase):
 
     def test_get_connected_devices(self, m):
         device_info_response_text = """
-        addROD("known_device_list", { "known_devices": [
-            { "mac": "xx:xx:xx:xx:xx:xx", "hostname": "active_device", "activity": 1 },
-            { "mac": "xx:xx:xx:xx:xx:ab", "hostname": "inactive_device", "activity": 0 }
-        ] });
+        addROD("known_device_list", { "known_devices": [{ "mac": "xx:xx:xx:xx:xx:xx", "hostname": "active_device", "activity": 1 },{ "mac": "xx:xx:xx:xx:xx:ab", "hostname": "inactive_device", "activity": 0 }] });
         """
 
         self._match_successful_login(m)
