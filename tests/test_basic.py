@@ -181,10 +181,7 @@ class TestGateway3100(unittest.TestCase):
 
     def test_get_connected_devices(self, m):
         device_info_response_text = """
-        addROD("known_device_list", { "known_devices": [
-            { "mac": "xx:xx:xx:xx:xx:xx", "hostname": "active_device", "activity": 1 },
-            { "mac": "xx:xx:xx:xx:xx:ab", "hostname": "inactive_device", "activity": 0 }
-        ] });
+        addROD("known_device_list", { "known_devices": [{ "mac": "xx:xx:xx:xx:xx:xx", "hostname": "active_device", "activity": 1 },{ "mac": "xx:xx:xx:xx:xx:ab", "hostname": "inactive_device", "activity": 0 }] });
         """
 
         self._match_successful_login(m)
