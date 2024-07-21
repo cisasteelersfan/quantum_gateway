@@ -27,6 +27,31 @@ def _encode_luci_password(unencoded_string, token):
     return hashlib.sha512((token + sha_hash).encode('ascii')).hexdigest()
 
 
+def _get_ip_address(ip_v4: str, ip_v6: str) -> str | None:
+    """Returns the IP address of the connected device,
+        if both are present returns V4"""
+    if ip_v4 != '':
+        return ip_v4
+    elif ip_v6 != '':
+        return ip_v6
+    else:
+        return None
+
+
+class DeviceInfo():
+    def __init__(
+        self,
+        mac: str,
+        hostname: str,
+        is_connected: bool,
+        ip_address: str | None
+    ):
+        self.mac = mac
+        self.hostname = hostname
+        self.is_connected = is_connected
+        self.ip_address = ip_address
+
+
 class Gateway(ABC):
     def __init__(self):
         super().__init__()
@@ -47,6 +72,11 @@ class Gateway(ABC):
         """Gets the connected devices as a MAC address -> hostname map."""
         return NotImplementedError()
 
+    @abstractmethod
+    def get_all_devices(self) -> Dict[str, DeviceInfo]:
+        """Gets all devices as a MAC address -> DeviceInfo map."""
+        return NotImplementedError()
+
 
 class Gateway1100(Gateway):
     def __init__(self, host, password, use_https=True):
@@ -64,6 +94,23 @@ class Gateway1100(Gateway):
         self.password = password
 
         self.session = requests.Session()
+
+    def get_all_devices(self):
+        devices_raw = self.session.get(
+            self.host + '/api/devices',
+            timeout=TIMEOUT,
+            verify=self.verify
+        )
+        devices = json.loads(devices_raw.text)
+        return {
+            device['mac']: DeviceInfo(
+                device['mac'],
+                device['name'],
+                device['status'],
+                _get_ip_address(device['ipAddress'], device['ipv6Address'])
+            )
+            for device in devices
+        }
 
     def get_connected_devices(self):
         devices_raw = self.session.get(self.host + '/api/devices', timeout=TIMEOUT, verify=self.verify)
@@ -122,6 +169,62 @@ class Gateway3100(Gateway):
     def _is_valid_host(cls, host):
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         return requests.get('https://' + host + '/loginStatus.cgi', verify=False).status_code != HTTPStatus.NOT_FOUND
+
+    def get_all_devices(self):
+        res = self.session.get(
+            self.host + '/cgi/cgi_owl.js', timeout=TIMEOUT, verify=self.verify
+        )
+
+        if res.status_code != HTTPStatus.OK:
+            _LOGGER.warning('Failed to get connected devices from gateway; '
+                            'got HTTP status code %s', res.status_code)
+
+        connected_devices = {}
+
+        # Unfortunately, the data is provided to the frontend not as a JSON
+        # blob, but as some JavaScript to execute.  The below code uses a
+        # JavaScript parser and AST visitor to extract the known device data
+        # from the script.
+        #
+        # Example response:
+        #
+        # addROD('known_device_list', { 'known_devices': [ { 'mac': 'xx:xx:xx:xx:xx:xx', 'hostname': 'name' } ] });
+        def visitor(node, metadata):
+            if node.type != 'CallExpression':
+                return
+
+            if node.callee.type != 'Identifier' or node.callee.name != 'addROD':
+                return
+
+            if node.arguments[0].value != 'known_device_list':
+                return
+
+            known_devices_node = None
+            for prop in node.arguments[1].properties:
+                if prop.key.value == 'known_devices':
+                    known_devices_node = prop.value
+
+            if known_devices_node is None:
+                _LOGGER.debug('Failed to find known_devices object in response data')
+                return
+
+            for device in known_devices_node.elements:
+                data = {prop.key.value: prop.value.value for prop in device.properties}
+                if 'mac' not in data or 'hostname' not in data:
+                    continue
+                connected_devices[data['mac']] = DeviceInfo(
+                    data['mac'],
+                    data['hostname'],
+                    data.get('activity') == 1,
+                    None,
+                )
+
+        lines = res.text.split("\n")
+        for line in lines:
+            if "known_device_list" in line:
+                esprima.parseScript(line, {}, visitor)
+
+        return connected_devices
 
     def get_connected_devices(self):
         res = self.session.get(
